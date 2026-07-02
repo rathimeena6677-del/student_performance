@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -225,12 +226,20 @@ with tab_predict:
  
     c1, c2 = st.columns(2)
     with c1:
-        hours_studied = st.slider("Hours Studied", 1, 12, 5)
-        previous_scores = st.slider("Previous Scores", 0, 100, 70)
-        sleep_hours = st.slider("Sleep Hours", 0, 12, 7)
+        hours_studied = st.number_input(
+            "Hours Studied", min_value=0, max_value=24, value=5, step=1
+        )
+        previous_scores = st.number_input(
+            "Previous Scores", min_value=0, max_value=100, value=70, step=1
+        )
+        sleep_hours = st.number_input(
+            "Sleep Hours", min_value=0, max_value=24, value=7, step=1
+        )
     with c2:
         extracurricular = st.radio("Extracurricular Activities", ["Yes", "No"])
-        papers_practiced = st.slider("Sample Question Papers Practiced", 0, 15, 5)
+        papers_practiced = st.number_input(
+            "Sample Question Papers Practiced", min_value=0, max_value=50, value=5, step=1
+        )
  
     if st.button("Predict Performance Index", type="primary"):
         extra_encoded = encoder.transform([extracurricular])[0]
@@ -246,8 +255,61 @@ with tab_predict:
         st.success(f"🎯 Predicted Performance Index: **{prediction:.2f} / 100**")
         st.progress(min(int(prediction), 100))
  
+        st.divider()
+        if model_choice == "Lasso Regression":
+            test_r2 = results["Lasso Regression"]["metrics"]["test"]["R2"]
+            test_mae = results["Lasso Regression"]["metrics"]["test"]["MAE"]
+            nonzero = [
+                f"- **{f}**: {c:.3f}"
+                for f, c in zip(feature_names, model.coef_)
+                if abs(c) > 1e-6
+            ]
+            zero = [
+                f"- {f}"
+                for f, c in zip(feature_names, model.coef_)
+                if abs(c) <= 1e-6
+            ]
+            st.markdown("### 📘 What is Lasso Regression? (and what does this output mean)")
+            st.markdown(
+                f"""
+**Lasso Regression** is Linear Regression with an added *L1 penalty* that
+shrinks less-useful feature coefficients — often all the way to **zero**.
+This means Lasso automatically performs **feature selection**: features with
+a coefficient of 0 are effectively removed from the model because they didn't
+add meaningful predictive power once the stronger features were accounted for.
+ 
+**How to read this specific prediction:**
+- The model combined your inputs using only the features it kept (non-zero
+  coefficients below) to compute **{prediction:.2f}**.
+- A feature with coefficient **0.000** contributed **nothing** to this
+  prediction — changing that input's value would not move the result.
+ 
+**Features the model actually used (non-zero coefficients):**
+{chr(10).join(nonzero) if nonzero else "- None — all coefficients were shrunk to zero."}
+ 
+**Features the model ignored (coefficient shrunk to zero):**
+{chr(10).join(zero) if zero else "- None — all features were used."}
+ 
+**How trustworthy is this model overall?**
+- **R² (test) = {test_r2:.3f}** → the model explains about
+  **{test_r2*100:.1f}%** of the variation in Performance Index across unseen
+  students. Closer to 1.0 (100%) is better.
+- **MAE (test) = {test_mae:.2f}** → on average, predictions are off by about
+  **±{test_mae:.2f} points** on the 0–100 scale.
+- Since training and test scores are close to each other, the model
+  generalizes well and isn't simply memorizing the training data
+  (i.e. it is not overfitting).
+"""
+            )
+        else:
+            st.caption(
+                "ℹ️ Switch **Model to use for prediction** to **Lasso Regression** "
+                "above to see a plain-language breakdown of which features "
+                "the model kept, which it dropped, and how reliable the "
+                "prediction is."
+            )
+ 
 st.sidebar.divider()
 st.sidebar.caption(
     "Built with Streamlit · Linear Regression & Lasso Regression "
     "(scikit-learn) trained live on the uploaded dataset."
-)
