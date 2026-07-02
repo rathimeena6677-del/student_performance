@@ -312,4 +312,4 @@ add meaningful predictive power once the stronger features were accounted for.
 st.sidebar.divider()
 st.sidebar.caption(
     "Built with Streamlit · Linear Regression & Lasso Regression "
-    "(scikit-learn) trained live on the uploaded dataset."
+    "(scikit-learn) trained live on the uploaded dataset.")
